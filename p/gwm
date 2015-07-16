@@ -1,0 +1,21 @@
+#!/bin/bash
+
+export DJANGO_SETTINGS_MODULE="ganeti_webmgr.ganeti_web.settings"
+export GWM_CONFIG_DIR=/home/tschuy/projects/ganeti_webmgr
+cd /home/tschuy/projects/ganeti_webmgr
+
+source ~/.gwm/bin/activate
+
+function run() {
+    echo "Running on http://127.0.0.1:8080"
+    django-admin.py runserver 0.0.0.0:8080
+}
+
+function tests() {
+    echo "Running tests"
+    django-admin.py test clusters authentication jobs nodes utils virtualmachines vm_templates ganetiviz
+}
+
+echo "available functions:"
+echo "run   | run GWM server"
+echo "tests | run GWM tests""

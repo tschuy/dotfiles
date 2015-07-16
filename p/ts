@@ -1,0 +1,17 @@
+#!/bin/bash
+
+export PORT="2000"
+cd /home/tschuy/projects/timesync
+
+echo "available functions:"
+echo "run  | run Timesync server"
+echo "docs | open documentation"
+
+function run() {
+    echo "Running on http://127.0.0.1:2000"
+    npm start
+}
+
+function docs() {
+    firefox file:///home/tschuy/projects/timesync/docs/build/html/index.html
+}
