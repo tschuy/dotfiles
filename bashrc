@@ -85,8 +85,10 @@ alias egrep='egrep --color=auto'
 alias git-graph='git log --stat --graph'
 
 # keys
-keychain --quiet ~/.ssh/fir
-keychain --quiet ~/.ssh/id_rsa
+if hash keychain 2>/dev/null; then
+    keychain --quiet ~/.ssh/fir
+    keychain --quiet ~/.ssh/id_rsa
+fi
 
 # openstack config
 if [ -f $HOME/.openstackrc ]; then
@@ -120,7 +122,7 @@ function fixbrowsers() {
     rm ~/.mozilla/firefox/*.default/.parentlock
 }
 
-if [ "$DISPLAY" ]
+if [ "$DISPLAY" ] && [ hash feh 2>/dev/null ];
 then
     feh --bg-fill ~/Desktop/bg5.jpg
 fi
