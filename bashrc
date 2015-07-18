@@ -126,6 +126,10 @@ then
 fi
 
 
+export PYTHONSTARTUP=~/.pythonrc
+export WWW_HOME="http://duckduckgo.com"
+
+
 # Set PATH
 export PATH=$HOME/.bin:$PATH
 export PATH=$HOME/.chefdk/gem/ruby/2.1.0/bin:$PATH
@@ -133,3 +137,5 @@ export PATH=$HOME/.local/bin:$PATH
 export PATH=$HOME/projects/ascr:$PATH
 export PATH=$HOME/projects/fenestra/npm/stuff/bin:$PATH
 export PATH=$PATH:$HOME/.rvm/bin
+export PATH=$HOME/Downloads/android-studio/bin:$PATH
+export PATH=/usr/local/heroku/bin:$PATH
