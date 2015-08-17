@@ -131,6 +131,7 @@ fi
 export PYTHONSTARTUP=~/.pythonrc
 export WWW_HOME="http://duckduckgo.com"
 
+. <(npm completion)
 
 # Set PATH
 export PATH=$HOME/.bin:$PATH
