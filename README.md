@@ -1,11 +1,15 @@
-dotfiles
-========
+.dotfiles
+=========
 
-Because what this world needed was another dotfiles repo.
+i3 configuration:
+* ``.i3/config``
+* ``.i3status.conf``
 
-Contents:
-* ``i3/config``: my i3 config file. goes in ``~/.i3/config``
-* ``bashrc``: my ``bashrc``. goes in ``~/.bashrc``
-* ``pythonrc``: my ``pythonrc``. goes in ``~/.pythonrc``
-* ``p/*``: my project files. used by the ``p`` function defined in my
-  ``bashrc``. goes in ``~/.p/``.
+other configuration:
+* ``.bashrc``
+* ``.pythonrc``
+
+TODO:
+-----
+
+* one of those fancy scripts that can update the repo with changes, and update my local config when I pull
