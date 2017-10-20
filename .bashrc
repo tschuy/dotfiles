@@ -39,8 +39,6 @@ if [ -n "$force_color_prompt" ]; then
     fi
 fi
 
-source /etc/profile.d/bash_completion.sh
-
 # add kubeconfig and namespace to PS1
 __kubernetes_ps1 ()
 {
@@ -102,24 +100,42 @@ export GOROOT=$HOME/.local/go
 export GOPATH=$HOME/golang
 export PATH=$PATH:$GOPATH/bin
 
+# used in some scripts
+export INFRA_REPO="/home/tschuy/projects/infra"
+export SECURE_REPO="/home/tschuy/projects/secure"
+
+### make cd better
+shopt -s cdable_vars
+shopt -s direxpand
+export CDPATH=~/projects/
+export terraform=~/projects/infra-terraform
+export kubernetes=~/projects/infra-kubernetes
+
+### various handy aliases
+# that printf is pastefix, since weechat sets bracketed paste mode on start
 alias irc="ssh -t tschuye@flip3.engr.oregonstate.edu /nfs/stak/students/t/tschuye/.bin/irc && printf \"\e[?2004l\""
 alias web="python -m SimpleHTTPServer"
 
+alias lock="i3lock -d -c 000000"
+
 alias vi="vim"
-alias gpgagentreset="pkill -HUP gpg-agent"
+alias gpgagentreset="pkill -HUP gpg-agent" # -.-
+# for when something enables bracketed paste mode -.-
+alias pastefix="printf \"\e[?2004l\""
 
 alias sl='ls | sort -r'
 alias open='xdg-open'
 
+alias passwd_please="pwgen -1s 32"
+
+### various Kubernetes/Tectonic nice-to-haves
+
+# short alias that uses chosen namespace
 k () {
     ~/.local/bin/kubectl --namespace=${NS:-default} $@
 }
 
-gpg-connect-agent /bye
-
-# for when something enables bracketed paste mode -.-
-alias pastefix="printf \"\e[?2004l\""
-
+# only execute the command if the current cluster is a minikube cluster
 minictl () {
 	if grep -Fq "minikube" ~/.kube/config
 	then
@@ -129,6 +145,7 @@ minictl () {
 	fi
 }
 
+# open the tectonic console associated with current cluster
 cons () {
 	console_url=$(k get ingress -n tectonic-system -o=custom-columns=:.spec.rules[0].host | grep -v prometheus | grep -v public | sed -n 2p)
 	if [[ -z "${console_url}" ]]; then
@@ -139,33 +156,30 @@ cons () {
 	fi
 }
 
-export INFRA_REPO="/home/tschuy/projects/infra"
-export SECURE_REPO="/home/tschuy/projects/secure"
-
 alias clearkube='export KUBECONFIG= && export NS= '
 
-alias passwd_please="pwgen -1s 32"
+# choose cluster from list, or specify fuzzy name (ex: `c 1472`)
 alias c="source kubeconfig"
 
+# choose namespace from list with fzf
 ns () {
     export NS=`~/.local/bin/kubectl get ns -o=custom-columns=:.metadata.name | fzf --select-1`
 }
 
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+### startup setups
 
-shopt -s cdable_vars
-shopt -s direxpand
+# set up integrations
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+source /etc/profile.d/bash_completion.sh
+
+# start gpg-agent if it's not already running
+gpg-connect-agent /bye
 
 # make pretty "motd" banner
 figlet -d ~/.config -f isometric1.flf CoreOS -w 100
 echo ""
 
-export CDPATH=~/projects/
-export terraform=~/projects/infra-terraform
-export kubernetes=~/projects/infra-kubernetes
-
-alias lock="i3lock -d -c 000000"
-
+# add primary ssh key to ssh-agent 
 if  ssh-add -l | \
     grep -q "$(ssh-keygen -lf ~/.ssh/id_rsa | awk '{print $2}')"; \
 	then true;
