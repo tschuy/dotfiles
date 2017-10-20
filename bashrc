@@ -9,8 +9,8 @@ HISTCONTROL=ignoreboth
 shopt -s histappend
 
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-HISTSIZE=1000
-HISTFILESIZE=2000
+HISTSIZE=
+HISTFILESIZE=
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
@@ -23,20 +23,10 @@ shopt -s checkwinsize
 # make less more friendly for non-text input files, see lesspipe(1)
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-# set variable identifying the chroot you work in (used in the prompt below)
-if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
-    debian_chroot=$(cat /etc/debian_chroot)
-fi
-
 # set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
     xterm-color) color_prompt=yes;;
 esac
-
-# uncomment for a colored prompt, if the terminal has the capability; turned
-# off by default to not distract the user: the focus in a terminal window
-# should be on the output of commands, not on the prompt
-#force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
@@ -49,34 +39,48 @@ if [ -n "$force_color_prompt" ]; then
     fi
 fi
 
-# enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc).
-if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
-    . /etc/bash_completion
-fi
+source /etc/profile.d/bash_completion.sh
 
-# Add an "alert" alias for long running commands.  Use like so:
-#   sleep 10; alert
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+# add kubeconfig and namespace to PS1
+__kubernetes_ps1 ()
+{
+    if [ -n "$KUBECONFIG" ]; then
+        bn=`basename $(dirname $KUBECONFIG)`/`basename $KUBECONFIG`
+	printf "(%s" "$bn"
+	if [ -n "$NS" ]; then
+            printf ":%s" "$NS"
+        fi
+	printf ") "
+    fi
+}
 
+# add last two parent directories
+# ex: ~/projects/pname -> username/projects
+__pwd_ps1 ()
+{
+    if [ "$HOME" != `pwd` ]; then   
+        pwd | rev | awk -F / '{print "",$2,$3}' | rev | sed s_\ _/_g
+    fi
+}
 
-# Set PS1
+# get current git branch
 __git_ps1 ()
 {
     local b="$(git symbolic-ref HEAD 2>/dev/null)";
     if [ -n "$b" ]; then
-        printf "(%s)" "${b##refs/heads/}";
+        printf " (%s)" "${b##refs/heads/}";
     fi
 }
-PS1='\[\033[1;32m\]\u@\h:\[\033[1;34m\](\W)\[\033[00m\]$(__git_ps1) \[\033[0;34m\]→ \[\033[00m\]'
 
+# yikes, what a horribly ugly PS1 string
+PS1='\[\033[1;36m\]$(__kubernetes_ps1)\[\033[1;32m\]\[\033[1;34m\]$(__pwd_ps1)\[\033[1;32m\]\W\[\033[00m\]$(__git_ps1) \[\033[0;34m\]→ \[\033[00m\]'
 
+### I never use any of these ls or grep aliases
 # some more ls aliases
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
-alias ls='ls -ltr --color'
+alias ls='ls -ltr --color=auto'
 
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
@@ -84,61 +88,86 @@ alias egrep='egrep --color=auto'
 
 alias git-graph='git log --stat --graph'
 
-# keys
-if hash keychain 2>/dev/null; then
-    keychain --quiet ~/.ssh/fir
-    keychain --quiet ~/.ssh/id_rsa
-fi
-
-# openstack config
-if [ -f $HOME/.openstackrc ]; then
-    source $HOME/.openstackrc
-fi
-
-export EDITOR=vim
-
-
-function p() {
-    if [ "$1" == "start" ]; then
-        cd /home/tschuy/projects/
-        git clone $2
-    elif [ -a ~/.p/$1 ]; then
-        source ~/.p/$1
-    else
-        cd ~/projects/$1
-    fi
-}
-
-function c() {
-    if [ "$1" == "" ]; then
-        cd ~/git/chef-repo/
-    else
-        cd ~/git/chef-repo/osuosl-cookbooks/$1
-    fi
-}
-
-function fixbrowsers() {
-    rm ~/.config/google-chrome/SingletonLock
-    rm ~/.mozilla/firefox/*.default/.parentlock
-}
-
-if [ "$DISPLAY" ] && [ hash feh 2>/dev/null ];
-then
-    feh --bg-fill ~/Desktop/bg5.jpg
-fi
-
-
 export PYTHONSTARTUP=~/.pythonrc
 export WWW_HOME="http://duckduckgo.com"
-
-. <(npm completion)
+export EDITOR=vim
 
 # Set PATH
 export PATH=$HOME/.bin:$PATH
-export PATH=$HOME/.chefdk/gem/ruby/2.1.0/bin:$PATH
 export PATH=$HOME/.local/bin:$PATH
-export PATH=$HOME/projects/ascr:$PATH
-export PATH=$HOME/projects/fenestra/npm/stuff/bin:$PATH
-export PATH=$PATH:$HOME/.rvm/bin
-export PATH=$HOME/Downloads/android-studio/bin:$PATH
-export PATH=/usr/local/heroku/bin:$PATH
+export PATH=$HOME/.local/go/bin:$PATH
+
+# GOPATH, because go is special
+export GOROOT=$HOME/.local/go
+export GOPATH=$HOME/golang
+export PATH=$PATH:$GOPATH/bin
+
+alias irc="ssh -t tschuye@flip3.engr.oregonstate.edu /nfs/stak/students/t/tschuye/.bin/irc && printf \"\e[?2004l\""
+alias web="python -m SimpleHTTPServer"
+
+alias vi="vim"
+alias gpgagentreset="pkill -HUP gpg-agent"
+
+alias sl='ls | sort -r'
+alias open='xdg-open'
+
+k () {
+    ~/.local/bin/kubectl --namespace=${NS:-default} $@
+}
+
+gpg-connect-agent /bye
+
+# for when something enables bracketed paste mode -.-
+alias pastefix="printf \"\e[?2004l\""
+
+minictl () {
+	if grep -Fq "minikube" ~/.kube/config
+	then
+		KUBECONFIG=~/.kube/config kubectl $@
+	else
+		echo "your ~/.kube/config isn't minikube anymore; aborting"
+	fi
+}
+
+cons () {
+	console_url=$(k get ingress -n tectonic-system -o=custom-columns=:.spec.rules[0].host | grep -v prometheus | grep -v public | sed -n 2p)
+	if [[ -z "${console_url}" ]]; then
+		echo "couldn't find console url"
+	else
+		echo "opening $console_url"
+		google-chrome $console_url
+	fi
+}
+
+export INFRA_REPO="/home/tschuy/projects/infra"
+export SECURE_REPO="/home/tschuy/projects/secure"
+
+alias clearkube='export KUBECONFIG= && export NS= '
+
+alias passwd_please="pwgen -1s 32"
+alias c="source kubeconfig"
+
+ns () {
+    export NS=`~/.local/bin/kubectl get ns -o=custom-columns=:.metadata.name | fzf --select-1`
+}
+
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+
+shopt -s cdable_vars
+shopt -s direxpand
+
+# make pretty "motd" banner
+figlet -d ~/.config -f isometric1.flf CoreOS -w 100
+echo ""
+
+export CDPATH=~/projects/
+export terraform=~/projects/infra-terraform
+export kubernetes=~/projects/infra-kubernetes
+
+alias lock="i3lock -d -c 000000"
+
+if  ssh-add -l | \
+    grep -q "$(ssh-keygen -lf ~/.ssh/id_rsa | awk '{print $2}')"; \
+	then true;
+  else ssh-add ~/.ssh/id_rsa;
+fi
