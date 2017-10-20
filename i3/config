@@ -24,7 +24,8 @@ font -misc-fixed-medium-r-normal--13-120-75-75-C-70-iso10646-1
 floating_modifier $mod
 
 # start a terminal
-bindsym $mod+Return exec i3-sensible-terminal
+bindsym $mod+Return exec terminator
+#i3-sensible-terminal
 
 # kill focused window
 bindsym $mod+Shift+q kill
@@ -183,7 +184,9 @@ bindcode 163 exec google-chrome http://gmail.com
 
 new_window 1pixel
 
+exec --no-startup-id feh --bg-scale ~/Pictures/Wallpapers/bg.jpg
 exec gnome-keyring-daemon
+exec eval "$(ssh-agent -s)"
 
-
-bindsym $mod+q exec "dm-tool lock"
+bindsym $mod+q exec "i3lock -d -c 000000"
+bindsym $mod+Control+Shift+q exec "i3lock -c 000000 && systemctl suspend"
