@@ -159,6 +159,7 @@ cons () {
 alias clearkube='export KUBECONFIG= && export NS= '
 
 # choose cluster from list, or specify fuzzy name (ex: `c 1472`)
+# kubeconfig is in this repo under bin/
 alias c="source kubeconfig"
 
 # choose namespace from list with fzf
