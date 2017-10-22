@@ -190,3 +190,16 @@ exec eval "$(ssh-agent -s)"
 
 bindsym $mod+q exec "i3lock -d -c 000000"
 bindsym $mod+Control+Shift+q exec "i3lock -c 000000 && systemctl suspend"
+
+# https://faq.i3wm.org/question/1258/i3bari3status-is-it-possible-to-have-caps-lock-and-num-lock-indicator.1.html 
+# Enable/disable caps mode
+mode "caps" {
+        bindsym Caps_Lock mode "default"
+}
+bindsym Caps_Lock mode "caps"
+
+# Enable/disable numeric keyboard 
+mode "num" {
+        bindsym Num_Lock mode "default"
+}
+bindsym Num_Lock mode "num"
