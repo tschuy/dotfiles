@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# example ascr.conf:
+
+# SERVER=tschuy@ash.osuosl.org
+# DIRECTORY=~/public_html/screenshots/
+# URL=https://ash.osuosl.org/~tschuy/screenshots
+
+source ~/.ascrrc  > /dev/null 2>&1
+source ~/.config/ascr.conf  > /dev/null 2>&1
+
+function print_url {
+    echo "$1"
+    if hash xclip 2>/dev/null; then
+        echo "$1" | xclip -selection c
+    fi
+}
+
+while getopts ":wic" OPTION
+do
+     case $OPTION in
+         w)
+             WINDOW=true
+             ;;
+         i)
+             IMGUR=true
+             ;;
+	 c)
+	     CB=true
+	     ;;
+         ?)
+             echo "Usage: [-w] [-i/-c] [name]"
+             echo "-w: screenshot window by click"
+             echo "-i: upload screenshot to imgur"
+	     echo "-c: copy image to clipboard (requires xclip)"
+	     echo "name: upload screenshot with given name"
+             exit
+             ;;
+     esac
+done
+
+ARGS=($1 $2 $3)
+for i in ${ARGS[@]}; do
+    if [ ! -z $i ] && [ $i != "-i" ] && [ $i != "-c" ] && [ $i != "-w" ]; then
+        NAME=$i
+    fi
+done
+
+if [ -z "$NAME" ]; then
+    NAME="$(date '+%d_%m_%Y_%H%M%S')"
+else
+    if [[ ${NAME: -4} == ".png" ]]; then
+        NAME=${NAME:0:-4}
+    fi
+fi
+
+# TODO support window screenshots on OS X
+if [ -x /usr/sbin/screencapture ]; then
+    /usr/sbin/screencapture -x /tmp/$NAME.png
+else
+    if [ ! -z $WINDOW ]; then
+        WINDOWID=$(xwininfo | grep -o "0x[0-9]\{7\}" | head -n 1)
+        import -window "$WINDOWID" /tmp/$NAME.png
+    else
+        import /tmp/$NAME.png
+    fi
+fi
+
+if [ ! -z $IMGUR ]; then
+    RESPONSE=$(curl --compressed -fsSL --stderr - -H "Authorization: Client-ID 501478a47ed1014" -F "image=@/tmp/$NAME.png"  https://api.imgur.com/3/image)
+    URL=$(echo $RESPONSE | python -c "import json,sys;obj=json.load(sys.stdin);print obj['data']['link']")
+    print_url $URL
+    exit 0
+fi
+
+if [ ! -z $CB ]; then
+    xclip -selection clipboard -t image/png -i /tmp/$NAME.png
+    exit 0
+fi
+
+scp /tmp/$NAME.png $SERVER:$DIRECTORY > /dev/null 2>&1
+
+if [ $? -eq 1 ]; then
+    rm /tmp/$NAME.png
+    echo "Unable to upload screenshot. Verify remote destination exists and that you have permissions to access it."
+    exit 1
+fi
+
+rm /tmp/$NAME.png
+print_url $URL/$NAME.png
