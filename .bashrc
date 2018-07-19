@@ -43,7 +43,7 @@ fi
 __kubernetes_ps1 ()
 {
     if [ -n "$KUBECONFIG" ]; then
-        bn=`basename $(dirname $KUBECONFIG)`/`basename $KUBECONFIG`
+        bn=`basename $KUBECONFIG`
 	printf "(%s" "$bn"
 	if [ -n "$NS" ]; then
             printf ":%s" "$NS"
@@ -70,15 +70,23 @@ __git_ps1 ()
     fi
 }
 
+# commands to run every line
+__do_every_line ()
+{
+    kcfg=$(basename "$KUBECONFIG")
+    [ -z "$kcfg" ] && kcfg='$kcfg |' 
+    printf '\001\e]2;%s\a\002' "$kcfg $(basename `pwd`) $(__git_ps1)"
+}
+
 # yikes, what a horribly ugly PS1 string
-PS1='\[\033[1;36m\]$(__kubernetes_ps1)\[\033[1;32m\]\[\033[1;34m\]$(__pwd_ps1)\[\033[1;32m\]\W\[\033[00m\]$(__git_ps1) \[\033[0;34m\]→ \[\033[00m\]'
+PS1='\[\033[1;36m\]$(__kubernetes_ps1)\[\033[1;32m\]\[\033[1;34m\]$(__pwd_ps1)\[\033[1;32m\]\W\[\033[00m\]$(__git_ps1) \[\033[0;34m\]→ \[\033[00m\]$(__do_every_line)'
 
 ### I never use any of these ls or grep aliases
 # some more ls aliases
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
-alias ls='ls -ltr --color=auto'
+alias ls='ls -ltrh --color=auto'
 
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
@@ -94,6 +102,7 @@ export EDITOR=vim
 export PATH=$HOME/.bin:$PATH
 export PATH=$HOME/.local/bin:$PATH
 export PATH=$HOME/.local/go/bin:$PATH
+export PATH=$PATH:$HOME/.screenlayout # screen layouts for i3 for work
 
 # GOPATH, because go is special
 export GOROOT=$HOME/.local/go
@@ -103,13 +112,6 @@ export PATH=$PATH:$GOPATH/bin
 # used in some scripts
 export INFRA_REPO="/home/tschuy/projects/infra"
 export SECURE_REPO="/home/tschuy/projects/secure"
-
-### make cd better
-shopt -s cdable_vars
-shopt -s direxpand
-export CDPATH=~/projects/
-export terraform=~/projects/infra-terraform
-export kubernetes=~/projects/infra-kubernetes
 
 ### various handy aliases
 # that printf is pastefix, since weechat sets bracketed paste mode on start
@@ -126,7 +128,7 @@ alias pastefix="printf \"\e[?2004l\""
 alias sl='ls | sort -r'
 alias open='xdg-open'
 
-alias passwd_please="pwgen -1s 32"
+alias passwd_please="pwgen -1s 40"
 
 ### various Kubernetes/Tectonic nice-to-haves
 
@@ -152,7 +154,7 @@ cons () {
 		echo "couldn't find console url"
 	else
 		echo "opening $console_url"
-		google-chrome $console_url
+		google-chrome $console_url &>/dev/null
 	fi
 }
 
@@ -164,7 +166,11 @@ alias c="source kubeconfig"
 
 # choose namespace from list with fzf
 ns () {
-    export NS=`~/.local/bin/kubectl get ns -o=custom-columns=:.metadata.name | fzf --select-1`
+    if [ -z "$1" ]; then
+        export NS=`~/.local/bin/kubectl get ns -o=custom-columns=:.metadata.name | fzf --select-1`
+    else
+        export NS=`~/.local/bin/kubectl get ns -o=custom-columns=:.metadata.name | grep $1 | fzf --select-1`
+    fi
 }
 
 ### startup setups
@@ -172,17 +178,41 @@ ns () {
 # set up integrations
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 source /etc/profile.d/bash_completion.sh
+export FZF_CTRL_T_OPTS="--preview '(highlight -O ansi -l {} 2> /dev/null || cat {} || tree -C {}) 2> /dev/null | head -200'"
 
 # start gpg-agent if it's not already running
 gpg-connect-agent /bye
 
 # make pretty "motd" banner
-figlet -d ~/.config -f isometric1.flf CoreOS -w 100
+figlet -d ~/.config -f isometric1.flf CoreOS -w 200 | lolcat
 echo ""
+
+# http://rabexc.org/posts/pitfalls-of-ssh-agents
+ssh-add -l &>/dev/null
+if [ "$?" == 2 ]; then
+  test -r ~/.ssh-agent && \
+    eval "$(<~/.ssh-agent)" >/dev/null
+
+  ssh-add -l &>/dev/null
+  if [ "$?" == 2 ]; then
+    (umask 066; ssh-agent > ~/.ssh-agent)
+    eval "$(<~/.ssh-agent)" >/dev/null
+    ssh-add
+  fi
+fi
+
 
 # add primary ssh key to ssh-agent 
 if  ssh-add -l | \
     grep -q "$(ssh-keygen -lf ~/.ssh/id_rsa | awk '{print $2}')"; \
 	then true;
-  else ssh-add ~/.ssh/id_rsa;
+  else ssh-add ~/.ssh/id_rsa && ssh-add ~/.ssh/prod1472 && ssh-add ~/.ssh/prod-v1507.key;
+
 fi
+
+# set title to reminder
+echo -e "\e]2;ctrl+shift+e | ctrl+shift-o | alt+arrow\a"
+
+alias vpn="~/.rhtoken/vpn.sh"
+
+alias path="echo $PATH | sed 's/:/\n/g'"
